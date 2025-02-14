@@ -9,18 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jarcoal/httpmock"
 	"github.com/layer5io/meshery/mesheryctl/pkg/utils"
 )
 
 var update = flag.Bool("update", false, "update golden files")
 
-func TestDesignList(t *testing.T) {
+func TestDesignListInt(t *testing.T) {
 	utils.SetupContextEnv(t)
 
-	utils.StartMockery(t)
-
-	testContext := utils.NewTestHelper(t)
+	// testContext := utils.NewTestHelper(t)
 
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
@@ -29,12 +26,10 @@ func TestDesignList(t *testing.T) {
 	currDir := filepath.Dir(filename)
 	fixturesDir := filepath.Join(currDir, "fixtures")
 
-	// test scenrios for fetching data
+	// test scenarios for fetching data
 	tests := []struct {
 		Name             string
 		Args             []string
-		URL              string
-		Fixture          string
 		Token            string
 		ExpectedResponse string
 		ExpectError      bool
@@ -43,8 +38,6 @@ func TestDesignList(t *testing.T) {
 			Name:             "Fetch Pattern List",
 			Args:             []string{"list", "--page", "2"},
 			ExpectedResponse: "list.design.output.golden",
-			Fixture:          "list.design.api.response.golden",
-			URL:              testContext.BaseURL + "/api/pattern",
 			Token:            filepath.Join(fixturesDir, "token.golden"),
 			ExpectError:      false,
 		},
@@ -52,8 +45,6 @@ func TestDesignList(t *testing.T) {
 			Name:             "Fetch Pattern List with Local provider",
 			Args:             []string{"list", "--page", "1"},
 			ExpectedResponse: "list.design.local.output.golden",
-			Fixture:          "list.design.local.api.response.golden",
-			URL:              testContext.BaseURL + "/api/pattern",
 			Token:            filepath.Join(fixturesDir, "local.token.golden"),
 			ExpectError:      false,
 		},
@@ -61,12 +52,7 @@ func TestDesignList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			apiResponse := utils.NewGoldenFile(t, tt.Fixture, fixturesDir).Load()
-
 			utils.TokenFlag = tt.Token
-
-			httpmock.RegisterResponder("GET", tt.URL,
-				httpmock.NewStringResponder(200, apiResponse))
 
 			testdataDir := filepath.Join(currDir, "testdata")
 			golden := utils.NewGoldenFile(t, tt.ExpectedResponse, testdataDir)
@@ -104,20 +90,21 @@ func TestDesignList(t *testing.T) {
 				golden.Write(actualResponse)
 			}
 			expectedResponse := golden.Load()
-			expectedResponse = trimLastNLines(expectedResponse, 2)
+			expectedResponse = trimLastNLinesInt(expectedResponse, 2)
 
 			cleanedActualResponse := utils.CleanStringFromHandlePagination(actualResponse)
-			cleanedExceptedResponse := utils.CleanStringFromHandlePagination(expectedResponse)
+			cleanedExpectedResponse := utils.CleanStringFromHandlePagination(expectedResponse)
 
-			utils.Equals(t, cleanedExceptedResponse, cleanedActualResponse)
+			utils.Log.Debugf("actual", cleanedActualResponse)
+			utils.Log.Debugf("expected", cleanedExpectedResponse)
+
+			utils.Equals(t, cleanedExpectedResponse, cleanedActualResponse)
 		})
 		t.Log("List Design test Passed")
 	}
-
-	utils.StopMockery(t)
 }
 
-func trimLastNLines(s string, n int) string {
+func trimLastNLinesInt(s string, n int) string {
 	lines := strings.Split(s, "\n")
 	if len(lines) <= n {
 		return ""
