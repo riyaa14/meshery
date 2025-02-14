@@ -26,7 +26,6 @@ jobs:
         go: [1.23]
         os: [ubuntu-22.04]
     name: golangci-lint
-    if: github.repository == 'meshery/meshery'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-go@v5
