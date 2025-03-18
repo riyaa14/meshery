@@ -2,13 +2,13 @@ name: Golang Unit and Integration Tests
 on:
   push:
     branches:
-      - "master"
+      - "*"
     paths:
       - "**.go"
       - "**.golden"
   pull_request:
     branches:
-      - "master"
+      - "*"
     paths:
       - "**.go"
       - "**.golden"
@@ -26,7 +26,6 @@ jobs:
         go: [1.23]
         os: [ubuntu-24.04]
     name: golangci-lint
-    if: github.repository == 'meshery/meshery'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-go@v5
@@ -84,7 +83,7 @@ jobs:
         uses: helm/kind-action@v1.10.0
         with:
           cluster_name: "kind-cluster"
-      - name: Run coverage
+      - name: Run setup commands
         run: |
           cd mesheryctl;
           make; 
@@ -92,8 +91,8 @@ jobs:
           ./mesheryctl system update -y;
           ./mesheryctl system status -y;
           ./mesheryctl system restart -y;
-          ./mesheryctl system check --preflight;  
-          ./mesheryctl system stop -y;
+          ./mesheryctl system check --preflight; 
+          ./mesheryctl system stop -y; 
           echo "Running Mesheryctl with Docker completed."
         
           ./mesheryctl system start -p kubernetes;
@@ -101,9 +100,16 @@ jobs:
           ./mesheryctl system status -y;
           ./mesheryctl system restart -y;
           ./mesheryctl system check --preflight;
+          echo "Running Mesheryctl with Kubernetes ...."
+      - name: Run integration tests
+        run: |
+          cd internal/cli/root/design
+          go test --short ./... -race -coverprofile=coverage.txt -covermode=atomic   
+      - name: Run system stop commands
+        run: |
+          cd ~/mesheryctl
           ./mesheryctl system stop -y;
           echo "Running Mesheryctl with Kubernetes completed."
-          
       - name: Upload coverage to Codecov
         if: github.repository == 'meshery/meshery'
         uses: codecov/codecov-action@v4
